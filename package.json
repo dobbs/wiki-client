@@ -30,6 +30,7 @@
     "underscore": "^1.8.3"
   },
   "scripts": {
+    "start": "ws",
     "test": "grunt mochaTest"
   },
   "devDependencies": {
@@ -59,6 +60,6 @@
     "url": "https://github.com/fedwiki/wiki-client/issues"
   },
   "engines": {
-    "node": ">=6.x"
+    "node": "10"
   }
 }
