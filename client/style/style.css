@@ -28,6 +28,10 @@ body {
   line-height: 1.3;
   color: #333333; }
 
+/* Better align sortable items. */
+.ui-sortable-helper > p {
+  margin: 0px; }
+
 .main {
   top: 0;
   left: 0;
@@ -98,6 +102,9 @@ img.remote,
 
 header {
   top: 0; }
+
+.page-handle {
+  cursor: grab; }
 
 footer {
   bottom: 0; }
@@ -272,7 +279,8 @@ p.readout {
   background-color: white;
   height: 100%;
   overflow: auto;
-  box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2); }
+  box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);
+  outline: none; }
   .page.active {
     box-shadow: 2px 1px 24px rgba(0, 0, 0, 0.4);
     z-index: 10; }
@@ -297,6 +305,36 @@ p.readout {
   /*width: 430px;*/
   padding: 30px;
   min-height: 100%;
+}
+
+.handle-parent {
+  z-index: 0;
+  position: relative;
+}
+
+.page-handle {
+  z-index: 1;
+  width: 100%;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+/* make more specific than ghost style. */
+div.pending-remove.page {
+  opacity: 0.2;
+  transition-property: opacity;
+  transition-duration: 300ms;
+}
+
+.twins span {
+  z-index: 2;
+  position: relative;
+}
+
+.header span {
+  z-index: 2;
+  position: relative;
 }
 
 .factory,

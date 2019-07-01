@@ -13,10 +13,13 @@ dialog = require './dialog'
 link = require './link'
 target = require './target'
 license = require './license'
+plugin = require './plugin'
 
 asSlug = require('./page').asSlug
 newPage = require('./page').newPage
 
+wiki.origin.get 'system/factories.json', (error, data) ->
+  window.catalog = data
 
 $ ->
   dialog.emit()
@@ -31,7 +34,7 @@ $ ->
     direction = switch event.which
       when LEFTARROW then -1
       when RIGHTARROW then +1
-    if direction && not (event.target.tagName is "TEXTAREA")
+    if direction && not $(event.target).is(":input")
       pages = $('.page')
       newIndex = pages.index($('.active')) + direction
       if 0 <= newIndex < pages.length
@@ -102,6 +105,41 @@ $ ->
     return false
 
   $('.main')
+    .sortable({handle: '.page-handle', cursor: 'grabbing'})
+      .on 'sortstart', (evt, ui) ->
+        return if not ui.item.hasClass('page')
+        noScroll = true
+        active.set ui.item, noScroll
+      .on 'sort', (evt, ui) ->
+        return if not ui.item.hasClass('page')
+        $page = ui.item
+        # Only mark for removal if there's more than one page (+placeholder) left
+        if evt.pageY < 0 and $(".page").length > 2
+          $page.addClass('pending-remove')
+        else
+          $page.removeClass('pending-remove')
+
+      .on 'sortstop', (evt, ui) ->
+        return if not ui.item.hasClass('page')
+        $pages = $('.page')
+        index = $pages.index($('.active'))
+        if ui.item.hasClass('pending-remove')
+          return if $pages.length == 1
+          index = index - 1 if $pages.length - 1 == index
+          lineup.removeKey(ui.item.data('key'))
+          ui.item.remove()
+          active.set($('.page')[index])
+        else
+          lineup.changePageIndex(ui.item.data('key'), index)
+          active.set $('.active')
+        state.setUrl()
+        state.debugStates()
+        console.log("refreshing all plugins in the lineup.")
+        $(".item").get().map (i) ->
+          $item = $(i)
+          item = $item.data("item")
+          plugin.do $item.empty(), item
+
     .delegate '.show-page-license', 'click', (e) ->
       e.preventDefault()
       $page = $(this).parents('.page')
@@ -243,6 +281,18 @@ $ ->
     $('.page').each (index, element) ->
       refresh.emitTwins $(element)
 
+  getPluginReference = (title) ->
+    return new Promise((resolve, reject) ->
+      slug = asSlug(title)
+      wiki.origin.get "#{slug}.json", (error, data) ->
+        resolve {
+          title,
+          slug,
+          type: "reference",
+          text: (if error then error.msg else data?.story[0].text) or ""
+        }
+      )
+
   $("<span>&nbsp; ☰ </span>")
     .css({"cursor":"pointer"})
     .appendTo('footer')
@@ -252,13 +302,18 @@ $ ->
       resultPage.addParagraph """
         Installed plugins offer these utility pages:
       """
-      if window.catalog 
-        for info in window.catalog
-          if info.pages
-            for title in info.pages
-              resultPage.addParagraph "[[#{title}]]"
+      return unless window.catalog
 
-      link.showResult resultPage
+      titles = []
+      for info in window.catalog
+        if info.pages
+          for title in info.pages
+            titles.push title
+
+      Promise.all(titles.map(getPluginReference)).then (items) ->
+        items.forEach (item) ->
+          resultPage.addItem item
+        link.showResult resultPage
 
   # $('.editEnable').is(':visible')
   $("<span>&nbsp; wiki <span class=editEnable>✔︎</span> &nbsp; </span>")
@@ -271,9 +326,6 @@ $ ->
         pageObject = lineup.atKey $page.data('key')
         refresh.rebuildPage pageObject, $page.empty()
   $('.editEnable').toggle() unless isAuthenticated
-
-  wiki.origin.get 'system/factories.json', (error, data) ->
-    window.catalog = data
 
   target.bind()
 
