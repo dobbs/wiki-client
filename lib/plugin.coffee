@@ -13,29 +13,18 @@ escape = (s) ->
     .replace(/'/g, '&#x27;')
     .replace(/\//g,'&#x2F;')
 
-# define loadScript that allows fetching a script.
-# see example in http://api.jquery.com/jQuery.getScript/
-
-loadScript = (url, options) ->
-  console.log("loading url:", url)
-  options = $.extend(options or {},
-    dataType: "script"
-    cache: true
-    url: url
-  )
-  $.ajax options
-
 scripts = []
 loadingScripts = {}
 getScript = plugin.getScript = (url, callback = () ->) ->
   if url in scripts
     callback()
   else
-    loadScript url
-      .done ->
+    console.log("importing url:", url)
+    import(url)
+      .then ->
         scripts.push url
         callback()
-      .fail (_jqXHR, _textStatus, err) ->
+      .catch err ->
         console.log('getScript: Failed to load:', url, err)
         callback()
 
