@@ -17,8 +17,9 @@ jobs:
       - name: change scope in package.json
         run: |
           mv package.json package.original.json
-          ./scripts/scopify-package ${{github.actor}} \
-            < package.original.json \
+          jq --arg scope ${{github.actor}} \
+            '.name|= sub("^";"@"+$scope+"/")|.repository.url|=sub("fedwiki";$scope)' \
+            package.original.json \
             > package.json
       - uses: actions/setup-node@v1
         with:
@@ -30,8 +31,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{github.token}}
         run: |
           npm ci
+          PRERELEASE=$(
+            git branch --show-current \
+            | perl -pe 's/_/-/g;s/[^0-9A-Za-z-]//g' )
           npm version prepatch \
-            --preid=$(git rev-parse --short HEAD)-${{github.run_number}} \
+            --preid=$PRERELEASE-$(git rev-parse --short HEAD)-${{github.run_number}} \
             --no-git-tag-version \
             --force
           npm run build
